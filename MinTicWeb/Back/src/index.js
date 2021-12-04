@@ -15,7 +15,7 @@ const resolvers = {
 
   //Mutaciones
   Mutation: {
-    signUp: async (root, { input }, { db }) => { //Root es el return de la BD
+    signUp: async (root, { input }, { db }) => { //Root es el return de la BD || SignUp es el Registro de usuarios con distintos roles
       const hashedPassword = bcrypt.hashSync(input.password) //traer el password y almacenar en una variable
       const newUser = {
         ...input,
@@ -24,23 +24,32 @@ const resolvers = {
       var client = new MongoClient(DB_URI, { useNewUrlParser: true, useUnifiedTopology: true });
       await client.connect();
       var db=client.db(DB_NAME)
-      console.log(db)
       const result = await db.collection("user").insertOne(newUser); //Función asíncrona que puede recibir 3 argumentos y regresa un objeto
-      const user = result.ops[0]
+      
 
       return {
         user: newUser,
         token: "token",
       }
-    }
-  },
+    },
 
-  user: {
-    id: (root) => {
-      return root.id;
-    }
+    signIn: async (root, { input }, { db }) => { //Root es el return de la BD
+      var client = new MongoClient(DB_URI, { useNewUrlParser: true, useUnifiedTopology: true });
+      await client.connect();
+      var db=client.db(DB_NAME)
+      const user=await db.collection("user").findOne({mail:input.mail});
+      console.log(user)
   }
+},
+      //Parámetros inmutables del user
+      user: {
+        id: (root) => {
+          return root._id;
+        }
+      }
 };
+
+
 
 // Resolvers define the technique for fetching the types defined in the
 // schema. This resolver retrieves books from the "books" array above.
@@ -54,6 +63,7 @@ const start = async () => {
   // The ApolloServer constructor requires two parameters: your schema
   // definition and your set of resolvers.
   const server = new ApolloServer({ typeDefs, resolvers });
+  
 
   // The `listen` method launches a web server.
   server.listen().then(({ url }) => {
@@ -69,16 +79,16 @@ const typeDefs = gql`
     misProyectos: [proyectos!]!
   }
   
-    type user{
+  type user{
       id:ID!
       mail:String!
       identificacion:String!
       nombre:String!
       password:String!
       rol:String!
-    }
+  }
 
-    type proyectos{
+  type proyectos{
       id:ID!
       nombre:String!
       objGen:String!
@@ -87,12 +97,23 @@ const typeDefs = gql`
       fechain:String!
       fechafin:String!
       user:[user!]!
-    }
+  }
   
-    type Mutation{
+  type Mutation{
+      signIn(input:signInInput):AuthUser!
       signUp(input:signUpInput):AuthUser!
-  
+  }
+      
+  input signInInput{
+      mail:String!
+      password:String!
+  }
+    
+    type AuthUser{
+      user:user!
+      token: String!
     }
+
     input signUpInput{
       mail:String!
       identificacion:String!
@@ -100,12 +121,6 @@ const typeDefs = gql`
       password:String!
       rol:String!
     }
-    
-    type AuthUser{
-      user:user!
-      token: String!
-    }
-  
   
   `;
 

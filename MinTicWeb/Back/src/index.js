@@ -29,7 +29,7 @@ const resolvers = {
 
       return {
         user: newUser,
-        token: "token",
+        token: "token"
       }
     },
 
@@ -39,7 +39,25 @@ const resolvers = {
       var db=client.db(DB_NAME)
       const user=await db.collection("user").findOne({mail:input.mail});
       console.log(user)
-  }
+      const isPaswwordCorrect = user && bcrypt.compareSync(input.password,user.password);
+      if (!user || !isPaswwordCorrect){
+        throw new Error("Las credenciales no son correctas");
+      }
+      return{
+      user,
+      token:"token"
+      }
+  },
+    crearProyectos: async (root, { input }, { db }) => {
+      const newProject = {
+        ...input
+        
+      }
+      var client = new MongoClient(DB_URI, { useNewUrlParser: true, useUnifiedTopology: true });
+      await client.connect();
+      var db=client.db(DB_NAME)
+      const result = await db.collection("Proyectos").insertOne(newProject); //Función asíncrona que puede recibir 3 argumentos y regresa un objeto
+    }
 },
       //Parámetros inmutables del user
       user: {
@@ -102,14 +120,22 @@ const typeDefs = gql`
   type Mutation{
       signIn(input:signInInput):AuthUser!
       signUp(input:signUpInput):AuthUser!
+      crearProyectos(input:crearProyectosInput):Authrol!
   }
-      
+  input crearProyectosInput{
+      id:ID!
+      nombre:String!
+  }
   input signInInput{
       mail:String!
       password:String!
   }
     
     type AuthUser{
+      user:user!
+      token: String!
+    }
+    type Authrol{
       user:user!
       token: String!
     }

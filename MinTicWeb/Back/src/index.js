@@ -48,10 +48,39 @@ const resolvers = {
       token:"token"
       }
   },
+
+    modifyUser: async (root, { input }, { db }) =>{
+      var client = new MongoClient(DB_URI, { useNewUrlParser: true, useUnifiedTopology: true });
+      await client.connect();
+      var db=client.db(DB_NAME)
+      const user=await db.collection("user").findOne({mail:input.mail});
+      const isPaswwordCorrect = user && bcrypt.compareSync(input.password,user.password);
+      if (!user || !isPaswwordCorrect){
+        throw new Error("Las credenciales no son correctas");
+      }else{
+      var modify=await db.collection("user").update(user,
+        {
+          $set: 
+          {
+            "mail":input.mail,
+            "nombre":input.nombre,
+            "identificacion":input.identificacion,
+            "rol":input.rol,
+            "password":input.password}
+          }
+        );
+      }
+    
+    return{
+      user,
+      modify,
+      token:"token"
+      }
+    },
+
     crearProyectos: async (root, { input }, { db }) => {
       const newProject = {
-        ...input
-        
+        ...input        
       }
       var client = new MongoClient(DB_URI, { useNewUrlParser: true, useUnifiedTopology: true });
       await client.connect();
@@ -97,6 +126,15 @@ const typeDefs = gql`
     misProyectos: [proyectos!]!
   }
   
+  type TaskList{
+    id:ID!
+    createAt:String!
+    title:String!
+    progress:Float!
+  }
+
+
+
   type user{
       id:ID!
       mail:String!
@@ -120,6 +158,7 @@ const typeDefs = gql`
   type Mutation{
       signIn(input:signInInput):AuthUser!
       signUp(input:signUpInput):AuthUser!
+      modifyUser(input:modifyUserInput):AuthUser!
       crearProyectos(input:crearProyectosInput):Authrol!
   }
   input crearProyectosInput{
@@ -147,7 +186,13 @@ const typeDefs = gql`
       password:String!
       rol:String!
     }
-  
+    input modifyUserInput{
+      mail:String!
+      identificacion:String!
+      nombre:String!
+      password:String!
+      rol:String!
+    }
   `;
 
 

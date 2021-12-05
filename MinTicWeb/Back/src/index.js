@@ -85,15 +85,28 @@ const resolvers = {
       var client = new MongoClient(DB_URI, { useNewUrlParser: true, useUnifiedTopology: true });
       await client.connect();
       var db=client.db(DB_NAME)
-      const result = await db.collection("Proyectos").insertOne(newProject); //Función asíncrona que puede recibir 3 argumentos y regresa un objeto
+      const user=await db.collection("user").findOne({mail:input.mail});
+      console.log(user)
+      const isPaswwordCorrect = user && bcrypt.compareSync(input.password,user.password);
+      if (!user || !isPaswwordCorrect){
+        throw new Error("Las credenciales no son correctas");
+      }else{
+      var result = await db.collection("Proyectos").insertOne(newProject); //Función asíncrona que puede recibir 3 argumentos y regresa un objeto
+      }
+    return{
+      user,
+      result,
+      token:"token"
     }
-},
+}
+  },
       //Parámetros inmutables del user
       user: {
         id: (root) => {
           return root._id;
         }
       }
+    
 };
 
 
@@ -146,7 +159,7 @@ const typeDefs = gql`
 
   type proyectos{
       id:ID!
-      nombre:String!
+      nombreProyecto:String!
       objGen:String!
       objEsp:String!
       presupuesto:String!
@@ -162,8 +175,13 @@ const typeDefs = gql`
       crearProyectos(input:crearProyectosInput):Authrol!
   }
   input crearProyectosInput{
-      id:ID!
-      nombre:String!
+      nombreProyecto:String!
+      mail:String!
+      objGen:String!
+      objEsp:String!
+      presupuesto:String!
+      fechain:String!
+      fechafin:String!
   }
   input signInInput{
       mail:String!
